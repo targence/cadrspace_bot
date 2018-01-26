@@ -19,7 +19,7 @@ const (
 	statusURL  = "https://cadrspace.ru/status/?format=json"
 	calAccount = "k63oqqu12qrmbo2giom17nu3m4@group.calendar.google.com"
 	calURL     = "https://content.googleapis.com/calendar/v3/calendars/%s/events?timeMin=%s&timeMax=%s&key=%s"
-	camURL     = "https://cadrspace.ru/status/?format=json"
+	camURL     = "http://nntc.nnov.ru:58080/?action=stream"
 )
 
 var calKey = os.Getenv("CAL_KEY")
