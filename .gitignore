@@ -1,0 +1,9 @@
+.vscode/
+tmp/
+vendor/
+tmp/
+debug
+cadrspace_bot
+cadrspace_bot.code-workspace
+db.gob
+
