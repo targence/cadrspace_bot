@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -16,10 +17,11 @@ import (
 )
 
 const (
-	statusURL  = "https://cadrspace.ru/status/?format=json"
-	calAccount = "k63oqqu12qrmbo2giom17nu3m4@group.calendar.google.com"
-	calURL     = "https://content.googleapis.com/calendar/v3/calendars/%s/events?timeMin=%s&timeMax=%s&key=%s"
-	camURL     = "http://nntc.nnov.ru:58080/?action=stream"
+	statusURL    = "http://tun.targence.com:2000"
+	calAccount   = "k63oqqu12qrmbo2giom17nu3m4@group.calendar.google.com"
+	calURL       = "https://content.googleapis.com/calendar/v3/calendars/%s/events?timeMin=%s&timeMax=%s&key=%s"
+	camStreamURL = "http://cadr.targence.com:4444/?action=snapshot.jpeg"
+	camStaticURL = "http://cadr.targence.com:4444/?action=snapshot.jpeg"
 )
 
 var calKey = os.Getenv("CAL_KEY")
@@ -185,20 +187,25 @@ func changeMsg(status status, calendar calendar, bot *tgbotapi.BotAPI, storage d
 
 	prefix := "🤖 Сейчас закрыто\n\n"
 	if status.State.Open == true {
-		prefix = "🤘 Сейчас открыто\n\n"
+		prefix = "🤘 Сейчас открыто\n" + "📷 goo.gl/W9kUFN\n\n"
 	}
 
 	var msg string
 	if len(calendar.Items) != 0 {
-		msg = "⏰ Время работы:\n"
-		for _, c := range calendar.Items {
-			startTime := c.Start.DateTime.In(zone).Format("2 Jan, Mon 15:04")
-			endTime := c.End.DateTime.In(zone).Format("15:04")
+		msg = "⏰ График работы:\n"
+		items := calendar.Items
+
+		sort.Slice(items, func(i, j int) bool { return items[i].Start.DateTime.Before(items[j].Start.DateTime) })
+
+		for _, item := range items {
+			startTime := item.Start.DateTime.In(zone).Format("2 Jan, Mon 15:04")
+			endTime := item.End.DateTime.In(zone).Format("15:04")
 			msg = fmt.Sprintf("%s• %s~%s\n", msg, startTime, endTime)
 		}
 
+		logrus.Warn(msg)
 	} else {
-		msg = "⏰ Время работы лучше уточнить у @avp"
+		msg = "⏰ График работы лучше уточнить у @avp"
 	}
 
 	edit := tgbotapi.NewEditMessageText(storage.ChatID, storage.MessageID, prefix+msg)
@@ -236,16 +243,16 @@ func main() {
 			if inline != nil {
 
 				var cams []interface{}
-				msg := tgbotapi.NewInlineQueryResultPhotoWithThumb(inline.ID+"_1", camURL, camURL)
+				msg := tgbotapi.NewInlineQueryResultPhotoWithThumb(inline.ID+"_1", camStaticURL, camStaticURL)
 				cams = append(cams, msg)
 
 				inlineConfig := tgbotapi.InlineConfig{
 					InlineQueryID: inline.ID,
-					IsPersonal:    true,
+					IsPersonal:    false,
 					CacheTime:     0,
 					Results:       cams,
 				}
-				_, err := bot.AnswerInlineQuery(inlineConfig)
+				_, err := bot.Send(inlineConfig)
 				if err != nil {
 					logrus.Warn(err)
 				}
